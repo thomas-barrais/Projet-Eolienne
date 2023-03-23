@@ -1,0 +1,166 @@
+from google.colab import drive
+drive.mount('/content/gdrive/')
+import numpy as np
+import matplotlib.pyplot as plt
+
+donnees1 = np.genfromtxt('/content/gdrive/MyDrive/naca_0012.txt', delimiter=',', names = True)
+donnees2 = np.genfromtxt('/content/gdrive/MyDrive/naca_23012.txt', delimiter=',', names = True)
+donnees3 = np.genfromtxt('/content/gdrive/MyDrive/naca_4412.txt', delimiter=',', names = True)
+
+alpha1=[]
+cd1=[]
+cl1=[]
+for i in range(len(donnees1)):
+  alpha1.append(donnees1[i][0])
+  cd1.append(donnees1[i][1])
+  cl1.append(donnees1[i][2])
+
+alpha1=np.array(alpha1)
+cd1=np.array(cd1)
+cl1=np.array(cl1)
+
+alpha2=[]
+cd2=[]
+cl2=[]
+for i in range(len(donnees2)):
+  alpha2.append(donnees2[i][0])
+  cd2.append(donnees2[i][1])
+  cl2.append(donnees2[i][2])
+
+alpha2=np.array(alpha2)
+cd2=np.array(cd2)
+cl2=np.array(cl2)
+
+alpha3=[]
+cd3=[]
+cl3=[]
+for i in range(len(donnees3)):
+  alpha3.append(donnees3[i][0])
+  cd3.append(donnees3[i][1])
+  cl3.append(donnees3[i][2])
+
+alpha3=np.array(alpha3)
+cd3=np.array(cd3)
+cl3=np.array(cl3)
+
+def polynomial_regression(x, y, degree):
+    x_range = np.linspace(min(x), max(x), len(x))
+    X=x.reshape(-1,1)
+    for i in range(2, degree + 1):
+        X = np.c_[X, np.power(X[:, 0],i)]
+
+    # Ajout d'une colonne de 1 pour le terme constant
+    X = np.c_[np.ones(X.shape[0]), X]
+
+    # Calcul des coefficients de régression
+    beta = np.dot(np.dot(np.linalg.inv(np.dot(X.T, X)), X.T), y)
+    return beta[0] + beta[1]*x_range + beta[2]*np.power(x_range, 2) + beta[3]*np.power(x_range, 3) + beta[4]*np.power(x_range, 4)
+
+
+def afficher_polynomial_regression(alpha, cl, cd, alpha2, cl2, cd2, alpha3, cl3, cd3, dg):
+    
+    # régression polynomiale
+    x_range = np.linspace(min(alpha), max(alpha), 119)
+    x_range2 = np.linspace(min(alpha2), max(alpha2), 115)
+    x_range3 = np.linspace(min(alpha3), max(alpha3), 118)
+
+    y_cl = polynomial_regression(alpha, cl, dg)
+    y_cl2 = polynomial_regression(alpha2, cl2, dg)
+    y_cl3 = polynomial_regression(alpha3, cl3, dg)
+
+    y_cd = polynomial_regression(alpha, cd, dg)
+    y_cd2 = polynomial_regression(alpha2, cd2, dg)
+    y_cd3 = polynomial_regression(alpha3, cd3, dg)
+
+    y_cl_cd = polynomial_regression(alpha, cl / cd, dg)
+    y_cl_cd2 = polynomial_regression(alpha2, cl2 / cd2, dg)
+    y_cl_cd3 = polynomial_regression(alpha3, cl3 / cd3, dg)
+
+    # Affichage des régressions polynomiales
+    fig, axes = plt.subplots(1, 3, figsize=(20, 8))
+    axes[0].scatter(alpha, cl, label="naca 0012")
+    axes[0].set_title('Coeff portance 1')
+    axes[0].set_xlabel('Alpha')
+    axes[0].set_ylabel('Cl')
+    axes[0].plot(x_range, y_cl, label='régression linéaire', color='r')
+    axes[0].legend()
+
+    axes[1].scatter(alpha2, cl2, label="naca 23012")
+    axes[1].set_title('Coeff portance 2')
+    axes[1].set_xlabel('Alpha')
+    axes[1].set_ylabel('Cl2')
+    axes[1].plot(x_range2, y_cl2,label='régression linéaire', color='r')
+    axes[1].legend()
+
+    axes[2].scatter(alpha3, cl3, label="naca 4412")
+    axes[2].set_title('Coeff portance 3')
+    axes[2].set_xlabel('Alpha')
+    axes[2].set_ylabel('Cl3')
+    axes[2].plot(x_range3, y_cl3, label='régression linéaire', color='r')
+    axes[2].legend()
+
+    fig2, axes2 = plt.subplots(1, 3, figsize=(20, 8))
+    axes2[0].scatter(alpha, cd, label="naca 0012")
+    axes2[0].set_title('Coeff trainée 1')
+    axes2[0].set_xlabel('Alpha')
+    axes2[0].set_ylabel('Cd')
+    axes2[0].plot(x_range, y_cd, label='régression linéaire', color='r')
+    axes2[0].legend()
+
+    axes2[1].scatter(alpha2, cd2, label="naca 23012")
+    axes2[1].set_title('Coeff trainée 2')
+    axes2[1].set_xlabel('Alpha')
+    axes2[1].set_ylabel('Cd2')
+    axes2[1].plot(x_range2, y_cd2, label='régression linéaire', color='r')
+    axes2[1].legend()
+
+    axes2[2].scatter(alpha3, cd3, label="naca 4412")
+    axes2[2].set_title('Coeff trainée 3')
+    axes2[2].set_xlabel('Alpha')
+    axes2[2].set_ylabel('Cd3')
+    axes2[2].plot(x_range3, y_cd3, label='régression linéaire', color='r')
+    axes2[2].legend()
+
+    # Convertir les listes en tableaux NumPy
+    y_cl_cd = np.array(y_cl_cd)
+    y_cl_cd2 = np.array(y_cl_cd2)
+    y_cl_cd3 = np.array(y_cl_cd3)
+
+    # Trouver l'indice de la valeur maximale dans chaque tableau
+    indice_max = np.argmax(y_cl_cd)
+    indice_max2 = np.argmax(y_cl_cd2)
+    indice_max3 = np.argmax(y_cl_cd3)
+
+    # Affichage de la finesse et de l'angle optimale
+    fig3, axes3 = plt.subplots(1, 3, figsize=(20, 8))
+    axes3[0].scatter(alpha, cl/cd, label="naca 0012")
+    axes3[0].set_title("Finesse 1 = "+ str(round(y_cl_cd[indice_max], 2)) +'\n' +"Alpha optimale 1 = " + str(round(alpha[indice_max], 2)))
+    axes3[0].set_xlabel('Alpha')
+    axes3[0].set_ylabel('Cl/Cd')
+    axes3[0].plot(x_range, y_cl_cd,label='régression linéaire', color='r')
+    axes3[0].legend()
+
+    axes3[1].scatter(alpha2, cl2/cd2, label="naca 23012")
+    axes3[1].set_title("Finesse 2 = " + str(round(y_cl_cd2[indice_max2], 2))+ '\n' + "Alpha optimale 2 = " + str(round(alpha2[indice_max2], 2)))
+    axes3[1].set_xlabel('Alpha')
+    axes3[1].set_ylabel('Cl/Cd')
+    axes3[1].plot(x_range2, y_cl_cd2, label='régression linéaire', color='r')
+    axes3[1].legend()
+
+    axes3[2].scatter(alpha3, cl3/cd3, label="naca 4412")
+    axes3[2].set_title("Finesse 3 = " + str(round(y_cl_cd3[indice_max3], 2)) + '\n' + "Alpha optimale 3 = " + str(round(alpha3[indice_max3], 2)))
+    axes3[2].set_xlabel('Alpha')
+    axes3[2].set_ylabel('Cl/Cd')
+    axes3[2].plot(x_range3, y_cl_cd3, label='régression linéaire', color='r')
+    axes3[2].legend()
+
+    plt.show()
+    angle_moyen = (alpha[indice_max] + alpha2[indice_max2] + alpha3[indice_max3]) / 3
+    Cl_moyen = (y_cl[indice_max] + y_cl2[indice_max2] + y_cl3[indice_max3]) / 3
+    Cd_moyen = (y_cd[indice_max] + y_cd2[indice_max2] + y_cd3[indice_max3]) / 3
+
+    print("l'anlge moyen = " + str(angle_moyen))
+    print("cl moyen = " + str(Cl_moyen))
+    print("cd moyen = " + str(Cd_moyen))
+
+afficher_polynomial_regression(alpha1, cl1, cd1, alpha2, cl2, cd2, alpha3, cl3, cd3, 4)
